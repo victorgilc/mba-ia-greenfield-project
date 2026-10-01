@@ -1,0 +1,10 @@
+{
+  "skill-activator": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node -e \"console.log(JSON.stringify({injectSteps:[{ephemeralMessage:'Identify and activate relevant skills for this task.'}]}))\""
+      }
+    ]
+  }
+}

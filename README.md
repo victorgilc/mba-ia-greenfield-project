@@ -183,7 +183,11 @@ green-field-ia-project/
 │   ├── tests/                           # E2E (Playwright)
 │   ├── compose.yaml                     # Docker Compose (dev server)
 │   └── Dockerfile.dev
-├── CLAUDE.md                            # Instruções para IA
+├── GEMINI.md                            # Instruções para IA (Gemini / Antigravity)
+├── AGENTS.md                            # Instruções universais para agentes
+├── CLAUDE.md                            # Instruções para Claude Code
+├── .agents/                             # Customizações para Gemini/Antigravity (skills, regras, hooks)
+├── .claude/                             # Customizações para Claude Code
 ├── FC Tube.fig                          # Design system do projeto (Figma)
 ├── whiteboard.png                       # Quadro branco do projeto
 └── README.md

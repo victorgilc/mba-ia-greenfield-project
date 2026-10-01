@@ -1,0 +1,4 @@
+{
+  "name": "streamtube",
+  "description": "StreamTube core workspace plugin: PostgreSQL MCP server and specialized subagents"
+}
