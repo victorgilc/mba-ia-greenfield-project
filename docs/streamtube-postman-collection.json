@@ -1,0 +1,377 @@
+{
+  "info": {
+    "name": "StreamTube API",
+    "description": "Postman collection for the StreamTube API (Phase 01 to 03)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "video_nano_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "upload_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "presigned_upload_url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "part_etag",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var data = pm.response.json();",
+                  "    pm.collectionVariables.set(\"access_token\", data.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Channels",
+      "item": [
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Gaming Channel\",\n  \"handle\": \"@mygamingchannel\",\n  \"description\": \"The best gaming content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/channels",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "channels"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Channel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/channels/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "channels",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "item": [
+        {
+          "name": "1. Create Draft Video",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var data = pm.response.json();",
+                  "    pm.collectionVariables.set(\"video_nano_id\", data.nano_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My First Video\",\n  \"description\": \"This is my first video upload\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/videos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "videos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Initiate Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var data = pm.response.json();",
+                  "    pm.collectionVariables.set(\"upload_id\", data.uploadId);",
+                  "    if (data.preSignedUrls && data.preSignedUrls.length > 0) {",
+                  "        var rawUrl = data.preSignedUrls[0].url;",
+                  "        var hostUrl = rawUrl.replace(\"http://minio:9000\", \"http://localhost:9000\");",
+                  "        pm.collectionVariables.set(\"presigned_upload_url\", hostUrl);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contentType\": \"video/mp4\",\n  \"size\": 10485760,\n  \"parts\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/videos/{{video_nano_id}}/upload/initiate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "videos",
+                "{{video_nano_id}}",
+                "upload",
+                "initiate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Upload File Part to Pre-Signed URL (Simulated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var etag = pm.response.headers.get(\"ETag\");",
+                  "    if (etag) {",
+                  "        pm.collectionVariables.set(\"part_etag\", etag.replace(/\"/g, ''));",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "video/mp4"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {}
+            },
+            "url": {
+              "raw": "{{presigned_upload_url}}",
+              "host": [
+                "{{presigned_upload_url}}"
+              ]
+            },
+            "description": "Uses `{{presigned_upload_url}}` generated by Initiate Upload. Select any sample video file or text file in the Body tab to upload."
+          }
+        },
+        {
+          "name": "4. Complete Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uploadId\": \"{{upload_id}}\",\n  \"parts\": [\n    {\n      \"ETag\": \"{{part_etag}}\",\n      \"PartNumber\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/videos/{{video_nano_id}}/upload/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "videos",
+                "{{video_nano_id}}",
+                "upload",
+                "complete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Get Video Details / Stream Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/videos/{{video_nano_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "videos",
+                "{{video_nano_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

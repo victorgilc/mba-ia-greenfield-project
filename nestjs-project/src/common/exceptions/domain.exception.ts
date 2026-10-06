@@ -48,3 +48,13 @@ export class TokenReuseDetectedException extends DomainException {
     );
   }
 }
+
+export class VideoSizeExceededException extends DomainException {
+  constructor(maxSizeBytes = 10 * 1024 * 1024 * 1024) {
+    super(
+      'VIDEO_SIZE_EXCEEDED',
+      413,
+      `Video file size exceeds maximum limit of 10GB (${maxSizeBytes} bytes)`,
+    );
+  }
+}

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -9,13 +10,25 @@ import authConfig from './config/auth.config';
 import databaseConfig from './config/database.config';
 import mailConfig from './config/mail.config';
 import swaggerConfig from './config/swagger.config';
+import storageConfig from './config/storage.config';
+import redisConfig from './config/redis.config';
 import { envValidationSchema } from './config/env.validation';
+import { StorageModule } from './storage/storage.module';
+import { VideosModule } from './videos/videos.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig, databaseConfig, mailConfig, swaggerConfig],
+      load: [
+        appConfig,
+        authConfig,
+        databaseConfig,
+        mailConfig,
+        swaggerConfig,
+        storageConfig,
+        redisConfig,
+      ],
       validationSchema: envValidationSchema,
       validationOptions: { allowUnknown: true, abortEarly: false },
     }),
@@ -33,7 +46,19 @@ import { envValidationSchema } from './config/env.validation';
         synchronize: false,
       }),
     }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [redisConfig.KEY],
+      useFactory: (rConfig: ConfigType<typeof redisConfig>) => ({
+        connection: {
+          host: rConfig.host,
+          port: rConfig.port,
+        },
+      }),
+    }),
     AuthModule,
+    StorageModule,
+    VideosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
