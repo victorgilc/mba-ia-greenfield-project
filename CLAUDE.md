@@ -26,6 +26,31 @@ See `docs/diagrams/software-arch.mermaid` for the full diagram. Key containers:
 - **Message Queue** (Redis/BullMQ) → video processing job queue
 - **Email Service** (SMTP) → account confirmation and password recovery
 
+## Video Module & Processing Architecture (Phase 03)
+
+The platform supports high-performance video uploads of up to 10GB without API starvation via direct-to-storage pre-signed multipart uploads, decoupled background transcode/processing, and on-demand streaming.
+
+### Key Components
+
+- **Videos Module (`nestjs-project/src/videos/`):**
+  - `VideosController`: HTTP routes for drafts, initiate/complete multipart uploads, and streaming metadata.
+  - `VideosService`: Orchestrates draft creation, pre-signed upload URL generation, finalization, metadata checks, and BullMQ queue dispatch.
+  - `Video` entity: Stores video metadata, NanoID, S3 object keys, processing status (`DRAFT`, `UPLOADED`, `PROCESSING`, `READY`, `FAILED`), duration in seconds, and belongs to a `Channel`.
+- **Storage Module (`nestjs-project/src/storage/`):**
+  - `StorageService`: Encapsulates AWS SDK S3 client connected to MinIO (`http://minio:9000`). Handles multipart upload initialization, pre-signed PUT/GET URLs, and S3 head-object metadata queries.
+- **Worker & Job Queue (`nestjs-project/src/worker/`):**
+  - Queue `video-processing` powered by BullMQ on Redis.
+  - `video-worker` standalone container (`src/main-worker.ts`) consuming `process-video` jobs.
+  - `VideoProcessor`: Runs `ffprobe` to extract duration and `ffmpeg` to capture a JPEG thumbnail frame, uploads thumbnail to S3, and marks video as `READY`.
+
+### Video API Endpoints
+
+- `POST /videos`: Creates a video draft (`DRAFT`) associated with the authenticated user's channel. Returns video entity with `nano_id`.
+- `POST /videos/:nanoId/upload/initiate`: Pre-registers a multipart upload. Validates declared size (max 10GB, returns 413 `VIDEO_SIZE_EXCEEDED` on fail-fast) and parts count (min 5MB per part). Generates S3 Upload ID and pre-signed PUT URLs.
+- `POST /videos/:nanoId/upload/complete`: Confirms completed upload parts with S3, validates final stored size, updates status to `UPLOADED`, and enqueues job into BullMQ.
+- `GET /videos/:nanoId`: Public streaming endpoint. Returns video details, channel metadata, thumbnail URL, and pre-signed download/streaming URL (only accessible once status is `READY`).
+
+
 ## Docker Networking
 
 This project runs entirely in Docker containers. When configuring connections between services (database, cache, queue, etc.), **always use the Docker Compose service name** as the host — never `localhost` or `127.0.0.1`.

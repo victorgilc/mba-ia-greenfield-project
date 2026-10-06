@@ -146,8 +146,24 @@ Whenever possible, prefer storing only the bare address in `.env` and composing 
 
 NestJS with standard module structure. Source lives in `src/`, compiled output in `dist/`.
 
-- Each domain feature gets its own module (e.g., `UsersModule`, `VideosModule`) registered in `AppModule`
+- Each domain feature gets its own module (e.g., `UsersModule`, `VideosModule`, `StorageModule`, `WorkerModule`) registered in `AppModule`
 - Controllers handle HTTP routing; Services hold business logic; both are scoped to their module
+
+## Videos & Storage Architecture (Phase 03)
+
+- **`VideosModule` (`src/videos/`):**
+  - Manages video lifecycle state machine: `DRAFT` -> `UPLOADED` -> `PROCESSING` -> `READY` / `FAILED`.
+  - `POST /videos`: Creates draft video record with public NanoID.
+  - `POST /videos/:nanoId/upload/initiate`: Generates multipart S3 upload IDs and pre-signed PUT URLs. Fail-fast on size > 10GB (`VIDEO_SIZE_EXCEEDED` 413) or invalid parts count (< 5MB per part).
+  - `POST /videos/:nanoId/upload/complete`: Completes multipart upload in S3, updates status to `UPLOADED`, dispatches job `process-video` to BullMQ queue `video-processing`.
+  - `GET /videos/:nanoId`: Public access to video metadata, thumbnail URL, and pre-signed streaming URL once status is `READY`.
+- **`StorageModule` (`src/storage/`):**
+  - Encapsulates AWS S3 SDK for MinIO (`http://minio:9000`). Handles multipart upload, pre-signed upload/download URLs, and metadata checks.
+- **`WorkerModule` (`src/worker/`):**
+  - Standalone NestJS worker process started via `src/main-worker.ts`.
+  - Consumes `process-video` jobs from Redis/BullMQ.
+  - Extracts duration via `ffprobe` and thumbnail frame via `ffmpeg`, uploads thumbnail to MinIO, updates DB status to `READY`.
+
 
 ## Code Conventions
 
