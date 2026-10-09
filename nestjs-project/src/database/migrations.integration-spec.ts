@@ -1,11 +1,10 @@
 import { DataSource } from 'typeorm';
-import { User } from '../users/entities/user.entity';
-import { Channel } from '../channels/entities/channel.entity';
-import { RefreshToken } from '../auth/entities/refresh-token.entity';
-import { VerificationToken } from '../auth/entities/verification-token.entity';
 import { CreateUsersAndChannels1775687773260 } from './migrations/1775687773260-CreateUsersAndChannels';
 import { CreateAuthTokens1777579850478 } from './migrations/1777579850478-CreateAuthTokens';
-import { createTestDataSource } from '../test/create-test-data-source';
+import {
+  ALL_TEST_ENTITIES,
+  createTestDataSource,
+} from '../test/create-test-data-source';
 
 const MANAGED_TABLES = [
   'users',
@@ -18,25 +17,26 @@ describe('Database migrations (integration)', () => {
   let dataSource: DataSource;
 
   beforeAll(async () => {
-    dataSource = createTestDataSource(
-      [User, Channel, RefreshToken, VerificationToken],
-      {
-        synchronize: false,
-        migrations: [
-          CreateUsersAndChannels1775687773260,
-          CreateAuthTokens1777579850478,
-        ],
-      },
-    );
+    dataSource = createTestDataSource(ALL_TEST_ENTITIES, {
+      synchronize: false,
+      migrations: [
+        CreateUsersAndChannels1775687773260,
+        CreateAuthTokens1777579850478,
+      ],
+    });
 
     await dataSource.initialize();
 
-    await Promise.all([
-      ...MANAGED_TABLES.map((table) =>
-        dataSource.query(`DROP TABLE IF EXISTS "${table}" CASCADE`),
-      ),
-      dataSource.query(`DROP TABLE IF EXISTS "migrations" CASCADE`),
-    ]);
+    const tablesToDrop = ['videos', ...MANAGED_TABLES, 'migrations'];
+    for (const table of tablesToDrop) {
+      await dataSource.query(`DROP TABLE IF EXISTS "${table}" CASCADE`);
+    }
+    await dataSource.query(
+      `DROP TYPE IF EXISTS "public"."verification_tokens_type_enum" CASCADE`,
+    );
+    await dataSource.query(
+      `DROP TYPE IF EXISTS "public"."videos_status_enum" CASCADE`,
+    );
   });
 
   afterAll(async () => {

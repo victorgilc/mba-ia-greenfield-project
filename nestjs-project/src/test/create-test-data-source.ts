@@ -1,4 +1,17 @@
-import { DataSource, EntitySchema, MigrationInterface } from 'typeorm';
+import { DataSource, DataSourceOptions, MigrationInterface } from 'typeorm';
+import { User } from '../users/entities/user.entity';
+import { Channel } from '../channels/entities/channel.entity';
+import { Video } from '../videos/entities/video.entity';
+import { RefreshToken } from '../auth/entities/refresh-token.entity';
+import { VerificationToken } from '../auth/entities/verification-token.entity';
+
+export const ALL_TEST_ENTITIES = [
+  User,
+  Channel,
+  Video,
+  RefreshToken,
+  VerificationToken,
+];
 
 interface TestDataSourceOptions {
   synchronize?: boolean;
@@ -6,7 +19,7 @@ interface TestDataSourceOptions {
 }
 
 export function createTestDataSource(
-  entities: (Function | string | EntitySchema<any>)[],
+  entities: DataSourceOptions['entities'] = ALL_TEST_ENTITIES,
   options: TestDataSourceOptions = {},
 ): DataSource {
   const { synchronize = true, migrations } = options;
@@ -24,8 +37,7 @@ export function createTestDataSource(
 }
 
 export async function cleanAllTables(dataSource: DataSource): Promise<void> {
-  await dataSource.query('DELETE FROM "refresh_tokens"');
-  await dataSource.query('DELETE FROM "verification_tokens"');
-  await dataSource.query('DELETE FROM "channels"');
-  await dataSource.query('DELETE FROM "users"');
+  await dataSource.query(
+    'TRUNCATE "videos", "refresh_tokens", "verification_tokens", "channels", "users" CASCADE',
+  );
 }
